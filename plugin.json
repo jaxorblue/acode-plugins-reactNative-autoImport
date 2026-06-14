@@ -1,0 +1,30 @@
+{
+  "id": "com.jaxorblue.rnAutoImport",
+  "name": "React Native Auto Import",
+  "main": "main.js",
+  "version": "1.0.0",
+  "readme": "readme.md",
+  "changelogs": "changelogs.md", 
+  "icon": "icon.png",
+  "files": [],
+  "minVersionCode": 292,
+  "price": 0,
+  "license": "MIT",
+  "keywords": [
+    "React",
+    "React Native",
+    "Auto Import",
+    "Import",
+    "Component",
+    "jsx",
+    "tsx",
+    "Native",
+    "Expo",
+    "Expo Import"
+  ],
+  "author": {
+    "name": "JaxorBlue",
+    "email": "jaxorblue@gmail.com",
+    "github": "jaxorblue"
+  }
+}
