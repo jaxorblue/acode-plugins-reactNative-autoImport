@@ -10,7 +10,7 @@
   
 </p>
 
-**Acode Plugin** — Automatically adds React Native components used in `JSX/TSX` files to the import line.
+**Acode Plugin** — Automatically adds React Native components used in `jsx/tsx` files to the import line.
 
 ## 🚀 Features
 
