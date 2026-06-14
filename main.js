@@ -1,13 +1,13 @@
 /**
  * Acode Plugin: React Native Auto Import
  * Plugin ID: com.rn.autoimport
- * Version: 1.5.0 (Added Import Notifications)
+ * Version: 1.5.1 (Fixed Empty React Import Bug)
  * Author: JaxorBlue
  */
 
 import plugin from "./plugin.json";
-import REACT_NATIVE_COMPONENTS from "./rn_comp.js";
-import REACT_COMPONENTS from "./r_comp.js";
+import REACT_NATIVE_COMPONENTS from "./rn-components/rn_comp.js";
+import REACT_COMPONENTS from "./rn-components/r_comp.js";
 
 const PLUGIN_ID = plugin.id;
 const COMMAND_NAME_OPTIMIZE = "rn-optimize-imports";
@@ -102,7 +102,7 @@ function getInsertPosition(text) {
   return 0;
 }
 
-// Dosyadaki importları sıfırdan tarayıp SADECE üst kısmı (ilk 100 satırı) güncelleyen ana motor
+// Dosyadaki importları sıfırdan tarayıp SADECE üst kısmı (ilk 100 satırı) güncelleyen ana motor (Ace Editor Uyumlu)
 function rewriteImportsFromScratch(editor) {
   const fullText = editor.session.getValue();
 
@@ -114,6 +114,8 @@ function rewriteImportsFromScratch(editor) {
 
   const usedRN = new Set();
   const usedReact = new Set();
+  let hasReactContext = false; // React importunun gerekip gerekmediğini denetleyen bayrak
+
   const wordRegex = /\b[a-zA-Z_][a-zA-Z0-9_]*\b/g;
   let match;
 
@@ -122,18 +124,14 @@ function rewriteImportsFromScratch(editor) {
     const word = match[0];
     const index = match.index;
 
-    const isRN = RN_COMPONENTS_SET.has(word);
-    const isReact = REACT_EXPORTS_SET.has(word);
-
-    if (!isRN && !isReact) continue;
-
     const exactPrev = cleanFullTextForScan.charAt(index - 1);
     const exactPrevPrev = cleanFullTextForScan.charAt(index - 2);
 
-    if (exactPrev === ".") continue;
-
+    // JSX etiketi tespit edildi mi?
     const isJSX =
       exactPrev === "<" || (exactPrev === "/" && exactPrevPrev === "<");
+    
+    if (isJSX) hasReactContext = true;
 
     const prevChar = getPrevNonSpaceChar(cleanFullTextForScan, index);
     const nextChar = getNextNonSpaceChar(
@@ -144,6 +142,18 @@ function rewriteImportsFromScratch(editor) {
 
     const isAPI = nextChar === ".";
 
+    // "React.useState" gibi doğrudan API çağrıları var mı?
+    if (word === "React" && isAPI) {
+      hasReactContext = true;
+    }
+
+    const isRN = RN_COMPONENTS_SET.has(word);
+    const isReact = REACT_EXPORTS_SET.has(word);
+
+    if (!isRN && !isReact) continue;
+
+    if (exactPrev === ".") continue;
+
     const codeRegex = /[{}[\]()=,:;?|&!+\-]/;
     const isCodeRef = codeRegex.test(prevChar) || codeRegex.test(nextChar);
 
@@ -153,7 +163,14 @@ function rewriteImportsFromScratch(editor) {
     }
   }
 
-  const newReactLine = formatImportStatement("React", [...usedReact], "react");
+  // Hook veya Component kullanılıyorsa React'ı dahil et
+  if (usedRN.size > 0 || usedReact.size > 0) {
+    hasReactContext = true;
+  }
+
+  // Sadece React bağlamı varsa varsayılan "React" importunu ekle
+  const defaultReact = hasReactContext ? "React" : null;
+  const newReactLine = formatImportStatement(defaultReact, [...usedReact], "react");
   const newRNLine = formatImportStatement(null, [...usedRN], "react-native");
 
   let fullImportBlock = "";
@@ -262,7 +279,6 @@ class RNAutoImportPlugin {
     editorManager.on("save-file", this.onSaveHandler);
   }
 
-  // Fonksiyonlar sınıf metoduna dönüştürüldü
   performAutoOptimizeOnSave() {
     try {
       const activeFile = editorManager.activeFile;
@@ -319,7 +335,7 @@ class RNAutoImportPlugin {
         win: optimizeShortcut,
         mac: optimizeShortcut.replace("Alt", "Command")
       },
-      exec: this.performManualOptimize.bind(this) // Doğru bağlam aktarımı
+      exec: this.performManualOptimize.bind(this)
     };
 
     if (commands) {
@@ -349,7 +365,6 @@ class RNAutoImportPlugin {
       editorCommands.removeCommand(COMMAND_NAME_OPTIMIZE);
     }
 
-    // Doğru referans kullanıldığı için artık dinleyici başarılı bir şekilde kaldırılacaktır
     if (this.onSaveHandler) {
       editorManager.off("save-file", this.onSaveHandler);
     }
