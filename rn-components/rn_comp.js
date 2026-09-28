@@ -5,7 +5,6 @@ const REACT_NATIVE_COMPONENTS = [
   "Image",
   "ImageBackground",
   "ScrollView",
-  "SafeAreaView",
   "TouchableOpacity",
   "Pressable",
   "TouchableHighlight",
