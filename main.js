@@ -56,9 +56,12 @@ function getNextNonSpaceChar(text, index, wordLen) {
  * --------------------------------------------------------- */
 
 function removeExistingImport(text, moduleName) {
+  const escapedModule = moduleName.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+
+  // Sadece ilgili modüle ait import bloğunu yakalar, diğer importlara asla dokunmaz
   const regex = new RegExp(
-    `import\\s*(?:(\\*\\s*as\\s+[A-Za-z0-9_]+|[A-Za-z0-9_]+)\\s*,?)?\\s*(?:\\{([^}]*)\\})?\\s*from\\s*['"]${moduleName}['"]\\s*;?\\r?\\n?`,
-    "g"
+    `^import\\s+(?:(?:\\*\\s*as\\s+[A-Za-z0-9_]+|[A-Za-z0-9_]+)\\s*,?)?\\s*(?:\\{[^}]*\\})?\\s*from\\s+['"]${escapedModule}['"]\\s*;?\\r?\\n?`,
+    "gm"
   );
 
   let defaultImport = null;
@@ -119,7 +122,9 @@ function formatImportStatement(defaultImport, namedImports, moduleName) {
  * --------------------------------------------------------- */
 
 function getInsertPosition(text) {
-  const importRegex = /^import\s+.*$/gm;
+  // Başka bir import satırını atlamadan her bir import bloğunu güvenle yakalar
+  const importRegex =
+    /^import\s+(?:(?!^import\s)[\s\S])*?from\s+['"][^'"]+['"]\s*;?/gm;
 
   let lastMatch = null;
   let match;
@@ -648,3 +653,11 @@ if (window.acode) {
 
   window.toast("React Native Auto Import Active!", 1000);
 }
+
+/* ---------------------------------------------------------
+ * Mevcut importları güvenli bir şekilde temizle
+ * --------------------------------------------------------- */
+
+/* ---------------------------------------------------------
+ * Importların ekleneceği konumu bul (Güvenli sınır korumalı)
+ * --------------------------------------------------------- */
